@@ -131,7 +131,12 @@
             callback(value, []);
         },
         ignoreCase: true,
-        throttling: true
+        throttling: true,
+        events: {
+            itemSelected: function(item) {
+
+            }
+        }
     };
 
     Autocomplete.prototype = {
@@ -141,7 +146,7 @@
             var timer;
             var fetching = false;
 
-            function getItemsHtml (list) {
+            function getItemsHtml (list, searchValue) {
                 var itemsHtml = '';
 
                 if (!list.length) {
@@ -154,14 +159,28 @@
                         return false;
                     }
 
-                    itemsHtml += self.compiled.item({ 'item': item});
+                    var newItem = $(self.compiled.item({ 'item': item}));
+                    highlight(searchValue, newItem);
+                    itemsHtml += newItem[0].outerHTML;
                 });
 
                 return itemsHtml;
             }
 
+            function highlight(string, $el) {
+                //var img = $el.find('img');
+                var matchStart = $el.text().toLowerCase().indexOf("" + string.toLowerCase() + ""),
+                    matchEnd = matchStart + string.length - 1,
+                    beforeMatch = $el.text().slice(0, matchStart),
+                    matchText = $el.text().slice(matchStart, matchEnd + 1),
+                    afterMatch = $el.text().slice(matchEnd + 1);
+                $el.html("<span>" + beforeMatch + "<span class='highlight'>" + matchText + "</span>" + afterMatch + "</span>");
+                // if (img.length) {
+                //     $el.prepend(img);
+                // }
+            }
+
             function handleList (value, list) {
-                var itemsHtml = getItemsHtml(list);
                 var currentValue = self.$el.val();
 
                 if (self.options.ignoreCase) {
@@ -176,11 +195,15 @@
                     return false;
                 }
 
+                var itemsHtml = getItemsHtml(list, currentValue);
+
                 if(itemsHtml) {
                     self.$dropdown.html(itemsHtml);
-                    self.$dropdown.show();
+                    //self.$dropdown.show();
+                    self.$el.dropdown("open");
                 } else {
-                    self.$dropdown.hide();
+                    //self.$dropdown.hide();
+                    self.$el.dropdown("close");
                 }
 
             }
@@ -319,6 +342,10 @@
             }
 
             self.$dropdown.addClass(self.options.dropdown.className);
+            self.$dropdown.addClass("autocomplete-content");
+            self.$dropdown.attr("id", "ac_dropdown" + (Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000));
+            self.$el.attr("data-activates", self.$dropdown.attr("id"));
+            self.$el.attr("data-beloworigin", "true");
 
             if (self.options.appender.el) {
                 self.$appender = $(self.options.appender.el);
@@ -438,6 +465,7 @@
             if (self.options.hidden.enable) {
                 self.$hidden.val(item.id);
             }
+            self.options.events.itemSelected(item);
         }
     };
 
